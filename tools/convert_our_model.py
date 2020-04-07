@@ -1,4 +1,5 @@
 import argparse
+from pathutils import Path
 import os
 import torch as ch
 from collections import OrderedDict
@@ -20,3 +21,8 @@ for k, v in model.items():
         new_key = k.replace('module.model.', '')
 
         od[new_key] = v
+
+out_fn = '_'.join(args.in_path.split('/')[-2:])
+out_path = Path(args.out_path) / out_fn
+
+ch.save(od, out_path)
