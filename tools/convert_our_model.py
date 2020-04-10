@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 from pathlib import Path
 import os
 import torch as ch
@@ -30,6 +31,10 @@ out_config = Path(args.out_path) / (out_fn + '_config.yaml')
 
 ch.save(od, out_path)
 
+final_out_path = f'{out_path}.pkl'
+
+subprocess.run(f'./convert-torchvision-to-d2.py {out_path} {final_out_path}', shell=True)
+
 print(f'saved in {out_config}')
 
 with open(args.base_config, 'r') as f:
@@ -45,7 +50,7 @@ RESNETS = {
 INPUT = {'FORMAT':'RGB'}
 
 keys = ['WEIGHTS', 'PIXEL_MEAN', 'PIXEL_STD', 'RESNETS']
-values = [str(out_path), PIXEL_MEAN, PIXEL_STD, RESNETS]
+values = [str(final_out_path), PIXEL_MEAN, PIXEL_STD, RESNETS]
 
 for k,v in zip(keys, values):
     config['MODEL'][k] = v
