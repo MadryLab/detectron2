@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import subprocess
 from pathlib import Path
 import os
@@ -6,7 +7,7 @@ import torch as ch
 from collections import OrderedDict
 import yaml
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--in-path')
@@ -26,12 +27,21 @@ for k, v in model.items():
         od[new_key] = v
 
 out_fn = '_'.join(args.in_path.split('/')[-2:])
-out_path = Path(args.out_path) / out_fn
-out_config = Path(args.out_path) / (out_fn + '_config.yaml')
+out_dir = Path(args.out_path) / out_fn
+
+try:
+    out_dir.mkdir()
+except:
+    shutil.rmtree(out_dir)
+    out_dir.mkdir()
+
+out_path = out_dir / 'torchvision_fmt_weights.pt'
+
+out_config = out_dir / 'config.yaml'
 
 ch.save(od, out_path)
 
-final_out_path = f'{out_path}.pkl'
+final_out_path = out_dir / 'detectron2_weights.pkl'
 
 subprocess.run(f'./convert-torchvision-to-d2.py {out_path} {final_out_path}', shell=True)
 
@@ -57,5 +67,21 @@ for k,v in zip(keys, values):
 
 config['INPUT'] = (INPUT)
 
+log_dir = out_dir / 'logs'
+print('log dir', log_dir)
+log_dir.mkdir()
+config['OUTPUT_DIR'] = str(log_dir)
+config['_BASE_'] = os.path.join('/'.join(args.base_config.split('/')[:-1]), config['_BASE_'])
+
 with open(out_config, 'w') as f:
     f.write(yaml.dump(config))
+
+print(f'config path: {out_config}')
+cmd1 = 'export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; ./train_net.py --config-file'
+
+cmd = f'{cmd1} {out_config} --num-gpus 8'
+print('run command',  cmd)
+with open('/tmp/cmds.txt', 'a') as f:
+    f.write(f'{cmd}\n')
+
+
